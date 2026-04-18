@@ -11,6 +11,8 @@ import com.pawan.userservice.pojos.UserToken;
 import com.pawan.userservice.repositories.RoleRepo;
 import com.pawan.userservice.repositories.SessionRepo;
 import com.pawan.userservice.repositories.UserRepo;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.MacAlgorithm;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +36,8 @@ public class UserAuthService implements IUserAuthService {
 
     @Autowired
     private BCryptPasswordEncoder bCryptPasswordEncoder;
+    @Autowired
+    private SecretKey secretKey;
 
     @Override
     public User signup(String name, String email, String password) {
@@ -81,7 +85,7 @@ public class UserAuthService implements IUserAuthService {
             Map<String, Object> payload = new HashMap<>();
             Long nowinMillis = System.currentTimeMillis();
             payload.put("iat", nowinMillis);
-            payload.put("exp", nowinMillis+10000);
+            payload.put("exp", nowinMillis+10000000);
             payload.put("userId", user.getId());
             payload.put("iss", "Param");
             payload.put("scope", user.getRoles());
@@ -105,4 +109,30 @@ public class UserAuthService implements IUserAuthService {
             throw new IncorrectPasswordException("Incorrect Password entered!");
         }
     }
+
+    @Override
+    public Boolean validateToken(String token) {
+        Optional<Session> optionalSession = sessionRepo.findByToken(token);
+        if(optionalSession.isEmpty()){
+            return false;
+        }
+
+        JwtParser jwtParser = Jwts.parser().verifyWith(secretKey).build();
+
+        Claims claims = jwtParser.parseSignedClaims(token).getPayload();
+        System.out.println(claims);
+
+        Long expiryTime =(Long) claims.get("exp");
+        Long nowInMillis = System.currentTimeMillis();
+
+        if(nowInMillis > expiryTime){
+            Session session = optionalSession.get();
+            session.setState(State.INACTIVE);
+            sessionRepo.save(session);
+            return false;
+        }
+
+        return true;
+    }
+
 }

@@ -3,6 +3,7 @@ package com.pawan.userservice.controllers;
 import com.pawan.userservice.dtos.LoginRequestDto;
 import com.pawan.userservice.dtos.SignupRequestDto;
 import com.pawan.userservice.dtos.UserDto;
+import com.pawan.userservice.dtos.ValidateTokenDto;
 import com.pawan.userservice.models.User;
 import com.pawan.userservice.pojos.UserToken;
 import com.pawan.userservice.services.IUserAuthService;
@@ -57,6 +58,18 @@ public class UserAuthController {
         } catch (Exception e){
             System.out.println(e.getMessage());
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
+    }
+
+    @PostMapping("/validateToken")
+    public ResponseEntity<String> validateToken(@RequestBody ValidateTokenDto validateTokenDto) {
+        Boolean result = userAuthService.validateToken(validateTokenDto.getToken());
+
+        if(result == false) {
+            return new ResponseEntity<>("Please login again, Inconvenience Regretted", HttpStatus.FORBIDDEN);
+            //throw new RuntimeException("Please login again, Inconvenience Regretted!!");
+        }else{
+            return new ResponseEntity<>("Token is valid", HttpStatus.OK);
         }
     }
 }
