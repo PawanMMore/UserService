@@ -4,10 +4,14 @@ import com.pawan.userservice.dtos.LoginRequestDto;
 import com.pawan.userservice.dtos.SignupRequestDto;
 import com.pawan.userservice.dtos.UserDto;
 import com.pawan.userservice.models.User;
+import com.pawan.userservice.pojos.UserToken;
 import com.pawan.userservice.services.IUserAuthService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -39,12 +43,20 @@ public class UserAuthController {
     @PostMapping("/login")
     ResponseEntity<UserDto> login(@RequestBody LoginRequestDto loginRequestDto){
         try{
-            User user = userAuthService.login(loginRequestDto.getUserEmail(),
+            UserToken userToken = userAuthService.login(loginRequestDto.getUserEmail(),
                     loginRequestDto.getPassward());
 
-            return new ResponseEntity<>(user.toUserDTO(), HttpStatus.OK);
+            MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+            headers.add(HttpHeaders.COOKIE, userToken.getToken());
+
+            HttpHeaders httpHeaders = new HttpHeaders(headers);
+
+            return new ResponseEntity<>(userToken.getUser().toUserDTO(),
+                    httpHeaders,
+                    HttpStatus.OK);
         } catch (Exception e){
-            return null;
+            System.out.println(e.getMessage());
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
     }
 }
